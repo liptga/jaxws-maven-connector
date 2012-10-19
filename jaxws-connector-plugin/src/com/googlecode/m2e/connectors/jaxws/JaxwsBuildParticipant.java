@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 Callista Enterprise AB - Björn Beskow
+ * Copyright (c) 2011-2012 Callista Enterprise AB - Bjšrn Beskow
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -37,16 +37,26 @@ public class JaxwsBuildParticipant extends MojoExecutionBuildParticipant {
             // check if any of the binding files have changed
             File source = maven.getMojoParameterValue(getSession(), getMojoExecution(), "bindingDirectory", File.class);
             Scanner ds = buildContext.newScanner(source); // delta or full scanner
-            ds.scan();
-            String[] includedBindingFiles = ds.getIncludedFiles();
+            // Defensive coding, to guard against bug in m2e (https://bugs.eclipse.org/bugs/show_bug.cgi?id=361038)
+            // which cause scanner to be null
+            String[] includedBindingFiles = null;
+            if (ds != null) {
+                ds.scan();
+                includedBindingFiles = ds.getIncludedFiles();
+            }
             // check if any of the wsdl files have changed
             source = maven.getMojoParameterValue(getSession(), getMojoExecution(), "wsdlDirectory", File.class);
             ds = buildContext.newScanner(source); // delta or full scanner
-            ds.scan();
-            String[] includedWsdlFiles = ds.getIncludedFiles();
+            // Defensive coding, to guard against bug in m2e (https://bugs.eclipse.org/bugs/show_bug.cgi?id=361038)
+            // which cause scanner to be null
+            String[] includedWsdlFiles = null;
+            if (ds != null) {
+                ds.scan();
+                includedWsdlFiles = ds.getIncludedFiles();
+            }
             // If no changes, simply return
-            if ((includedBindingFiles == null || includedBindingFiles.length <= 0) &&
-                (includedWsdlFiles == null || includedWsdlFiles.length <= 0)) {
+            if ((includedBindingFiles != null && includedBindingFiles.length == 0) &&
+                (includedWsdlFiles != null && includedWsdlFiles.length == 0)) {
                 return null;
             }
         }
@@ -58,6 +68,7 @@ public class JaxwsBuildParticipant extends MojoExecutionBuildParticipant {
         File generated = maven.getMojoParameterValue(getSession(), getMojoExecution(), "sourceDestDir", File.class);
         if (generated != null) {
             buildContext.refresh(generated);
+            buildContext.refresh(stale);
         }
 
         return result;
